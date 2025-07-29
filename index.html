@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学会ポイントシステム</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .participant-name {
+            font-size: 20px;
+            color: #666;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .big-button {
+            font-size: 18px;
+            padding: 15px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+        
+        .big-button:hover {
+            background: #45a049;
+        }
+        
+        .big-button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .success-icon {
+            font-size: 60px;
+            margin: 20px 0;
+        }
+        
+        .error-icon {
+            font-size: 60px;
+            margin: 20px 0;
+        }
+        
+        .points-display {
+            font-size: 24px;
+            color: #4CAF50;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        
+        .back-button {
+            background: #6c757d;
+            margin-top: 20px;
+        }
+        
+        .back-button:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <!-- 確認画面 -->
+    <div id="confirmScreen" class="container">
+        <h2>📱 交流ポイント獲得</h2>
+        <div class="participant-name" id="targetName">
+            参加者との交流ポイントを獲得しますか？
+        </div>
+        <button onclick="getPoint()" class="big-button" id="getPointBtn">
+            ✅ ポイントをもらう
+        </button>
+        <div style="margin-top: 20px; font-size: 14px; color: #666;">
+            ※1日1回まで同じ方からポイント獲得できます
+        </div>
+    </div>
+
+    <!-- 完了画面 -->
+    <div id="successScreen" class="container hidden">
+        <div class="success-icon">🎉</div>
+        <h2>ポイント獲得完了！</h2>
+        <div class="points-display">+1ポイント</div>
+        <p>交流ありがとうございました！</p>
+        <div id="totalPoints" class="points-display">合計: ○ポイント</div>
+        <button onclick="location.reload()" class="big-button back-button">
+            別の方のQRコードを読む
+        </button>
+    </div>
+
+    <!-- エラー画面 -->
+    <div id="errorScreen" class="container hidden">
+        <div class="error-icon">❌</div>
+        <h2>獲得できませんでした</h2>
+        <p id="errorMessage">エラーが発生しました</p>
+        <button onclick="location.reload()" class="big-button back-button">
+            もう一度試す
+        </button>
+    </div>
+
+    <!-- 名前入力画面 -->
+    <div id="nameInputScreen" class="container hidden">
+        <h2>👋 はじめまして</h2>
+        <p>あなたのお名前を教えてください</p>
+        <input type="text" id="nameInput" placeholder="お名前を入力" 
+               style="width: 100%; padding: 15px; font-size: 16px; border: 2px solid #ddd; border-radius: 5px; margin: 15px 0;">
+        <button onclick="saveName()" class="big-button">
+            次へ進む
+        </button>
+    </div>
+
+    <script>
+        // URLパラメータから対象者情報を取得
+        function getUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return {
+                targetId: urlParams.get('target'),
+                targetName: urlParams.get('name') || '参加者'
+            };
+        }
+
+        // ページ読み込み時の初期化
+        window.onload = function() {
+            const { targetId, targetName } = getUrlParams();
+            
+            if (!targetId) {
+                showError('QRコードが正しくありません');
+                return;
+            }
+
+            // 対象者名を表示
+            document.getElementById('targetName').textContent = 
+                `${targetName}さんとの交流ポイントを獲得しますか？`;
+
+            // 初回利用者は名前入力
+            const savedName = localStorage.getItem('userName');
+            if (!savedName) {
+                showNameInput();
+            }
+        };
+
+        // 名前入力画面表示
+        function showNameInput() {
+            document.getElementById('confirmScreen').classList.add('hidden');
+            document.getElementById('nameInputScreen').classList.remove('hidden');
+        }
+
+        // 名前保存
+        function saveName() {
+            const name = document.getElementById('nameInput').value.trim();
+            if (!name) {
+                alert('お名前を入力してください');
+                return;
+            }
+            
+            localStorage.setItem('userName', name);
+            document.getElementById('nameInputScreen').classList.add('hidden');
+            document.getElementById('confirmScreen').classList.remove('hidden');
+        }
+
+        // ポイント獲得処理
+        function getPoint() {
+            const { targetId } = getUrlParams();
+            const readerName = localStorage.getItem('userName');
+            
+            if (!readerName) {
+                showNameInput();
+                return;
+            }
+
+            // 重複チェック
+            const today = new Date().toDateString();
+            const duplicateKey = `${readerName}-${targetId}-${today}`;
+            
+            if (localStorage.getItem(duplicateKey)) {
+                showError('今日は既にこの方からポイントを獲得済みです');
+                return;
+            }
+
+            // 自分自身のチェック（簡易版）
+            if (readerName === getUrlParams().targetName) {
+                showError('ご自身のQRコードは読み取れません');
+                return;
+            }
+
+            // ポイント保存
+            try {
+                // 重複防止フラグ
+                localStorage.setItem(duplicateKey, 'true');
+                
+                // ポイント履歴
+                const pointHistory = JSON.parse(localStorage.getItem('pointHistory') || '[]');
+                pointHistory.push({
+                    reader: readerName,
+                    target: targetId,
+                    targetName: getUrlParams().targetName,
+                    timestamp: new Date().toISOString(),
+                    points: 1
+                });
+                localStorage.setItem('pointHistory', JSON.stringify(pointHistory));
+
+                // 合計ポイント更新
+                const totalPoints = pointHistory.length;
+                localStorage.setItem('totalPoints', totalPoints.toString());
+
+                showSuccess(totalPoints);
+            } catch (error) {
+                showError('ポイント保存中にエラーが発生しました');
+            }
+        }
+
+        // 成功画面表示
+        function showSuccess(totalPoints) {
+            document.getElementById('confirmScreen').classList.add('hidden');
+            document.getElementById('totalPoints').textContent = `合計: ${totalPoints}ポイント`;
+            document.getElementById('successScreen').classList.remove('hidden');
+        }
+
+        // エラー画面表示
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('confirmScreen').classList.add('hidden');
+            document.getElementById('successScreen').classList.add('hidden');
+            document.getElementById('nameInputScreen').classList.add('hidden');
+            document.getElementById('errorScreen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
