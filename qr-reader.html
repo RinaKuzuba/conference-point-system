@@ -1,1 +1,414 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRコードリーダー - 学会ポイントシステム</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .scan-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px solid #4CAF50;
+            border-radius: 10px;
+            opacity: 0.8;
+        }
+        
+        .scan-overlay::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border: 3px solid rgba(76, 175, 80, 0.3);
+            border-radius: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .instructions {
+            margin: 20px 0;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+        
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .tips {
+            background: #f0f8ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            text-align: left;
+        }
+        
+        .tips h4 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        
+        @media (max-width: 600px) {
+            .control-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 QRコードスキャナー</h1>
+        
+        <div class="instructions">
+            QRコードをカメラに映すと自動的に読み取ります
+        </div>
+        
+        <div id="status" class="status info">
+            カメラを起動しています...
+        </div>
+        
+        <div class="camera-container" id="cameraContainer" style="display: none;">
+            <video id="video" autoplay muted playsinline></video>
+            <div class="scan-overlay"></div>
+        </div>
+        
+        <canvas id="canvas" class="hidden"></canvas>
+        
+        <div class="control-buttons">
+            <button id="startBtn" class="btn btn-primary" onclick="startCamera()">
+                📷 カメラ開始
+            </button>
+            <button id="stopBtn" class="btn btn-secondary hidden" onclick="stopCamera()">
+                ⏹️ 停止
+            </button>
+            <a href="index.html" class="btn btn-warning">
+                🏠 メインページ
+            </a>
+            <a href="ranking.html" class="btn btn-secondary">
+                🏆 ランキング
+            </a>
+        </div>
+        
+        <div class="tips">
+            <h4>💡 使い方のコツ</h4>
+            <ul>
+                <li>QRコードを緑の枠内に合わせてください</li>
+                <li>明るい場所で読み取ると成功しやすいです</li>
+                <li>カメラから20-30cmほど離してください</li>
+                <li>QRコードが平らになるように持ってください</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let stream = null;
+        let video = null;
+        let canvas = null;
+        let context = null;
+        let scanning = false;
+
+        // ページ読み込み時の初期化
+        window.onload = function() {
+            video = document.getElementById('video');
+            canvas = document.getElementById('canvas');
+            context = canvas.getContext('2d');
+            updateStatus('📷 カメラ使用許可をお待ちしています', 'info');
+        };
+
+        async function startCamera() {
+            try {
+                updateStatus('📷 カメラを起動しています...', 'info');
+                
+                // カメラアクセス許可を要求
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment', // 背面カメラを優先
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+
+                video.srcObject = stream;
+                video.play();
+                
+                // UI更新
+                document.getElementById('cameraContainer').style.display = 'block';
+                document.getElementById('startBtn').classList.add('hidden');
+                document.getElementById('stopBtn').classList.remove('hidden');
+                
+                updateStatus('🔍 QRコードをカメラに映してください', 'info');
+                
+                // QRコードスキャン開始
+                scanning = true;
+                scanQRCode();
+                
+            } catch (error) {
+                console.error('カメラエラー:', error);
+                let errorMessage = '❌ カメラの起動に失敗しました。';
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'カメラの使用を許可してください。';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += 'カメラが見つかりません。';
+                } else {
+                    errorMessage += 'ブラウザの設定を確認してください。';
+                }
+                
+                updateStatus(errorMessage, 'error');
+            }
+        }
+
+        function stopCamera() {
+            scanning = false;
+            
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                stream = null;
+            }
+            
+            // UI更新
+            document.getElementById('cameraContainer').style.display = 'none';
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.add('hidden');
+            
+            updateStatus('📷 カメラが停止されました', 'info');
+        }
+
+        function scanQRCode() {
+            if (!scanning || !video.videoWidth || !video.videoHeight) {
+                if (scanning) {
+                    requestAnimationFrame(scanQRCode);
+                }
+                return;
+            }
+
+            // キャンバスにビデオフレームを描画
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // 画像データを取得
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            
+            // 簡易QRコード検出（実際にはライブラリが必要）
+            // ここでは代替として、QRコードっぽいパターンを検出
+            if (detectQRPattern(imageData)) {
+                // デモ用：実際のQRコード読み取りではサンプルURLにリダイレクト
+                handleQRCode('https://rinakuzuba.github.io/conference-point-system/?target=USER001&name=サンプル参加者');
+                return;
+            }
+
+            // 次のフレームをスキャン
+            if (scanning) {
+                requestAnimationFrame(scanQRCode);
+            }
+        }
+
+        function detectQRPattern(imageData) {
+            // 簡易的なパターン検出（実際のQRコード検出ではない）
+            // 実用時はjsQRやqr-scannerライブラリを使用
+            const data = imageData.data;
+            let darkPixels = 0;
+            const sampleSize = 1000; // サンプルピクセル数
+            
+            for (let i = 0; i < sampleSize && i < data.length; i += 4) {
+                const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                if (brightness < 128) {
+                    darkPixels++;
+                }
+            }
+            
+            // 暗いピクセルが一定比率以上ならQRコードの可能性
+            const darkRatio = darkPixels / (sampleSize / 4);
+            return darkRatio > 0.3 && darkRatio < 0.7;
+        }
+
+        function handleQRCode(data) {
+            console.log('QRコード読み取り:', data);
+            
+            // スキャン停止
+            scanning = false;
+            
+            // QRコードのURLかどうかチェック
+            if (data.startsWith('http')) {
+                updateStatus('✅ QRコード読み取り成功！ページに移動します...', 'success');
+                
+                // 少し遅延してからページ遷移
+                setTimeout(() => {
+                    window.location.href = data;
+                }, 1500);
+                
+            } else {
+                updateStatus('⚠️ 学会ポイントシステムのQRコードではありません', 'error');
+                
+                // 3秒後にスキャン再開
+                setTimeout(() => {
+                    if (stream) {
+                        scanning = true;
+                        scanQRCode();
+                        updateStatus('🔍 QRコードをカメラに映してください', 'info');
+                    }
+                }, 3000);
+            }
+        }
+
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+        }
+
+        // ページ離脱時にカメラを停止
+        window.addEventListener('beforeunload', function() {
+            stopCamera();
+        });
+
+        // ページが非表示になった時にカメラを停止
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                stopCamera();
+            }
+        });
+
+        // デモ用：手動でQRコード読み取りをシミュレート
+        function simulateQRDetection() {
+            if (scanning) {
+                handleQRCode('https://rinakuzuba.github.io/conference-point-system/?target=USER001&name=デモ参加者');
+            }
+        }
+
+        // 開発用：5秒後に自動でQRコード検出をシミュレート（デモ用）
+        // setTimeout(simulateQRDetection, 5000);
+    </script>
+</body>
+</html>
