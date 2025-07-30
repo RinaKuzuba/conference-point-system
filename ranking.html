@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交流ポイントランキング - 学会</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .my-status {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .my-status h3 {
+            margin: 0 0 15px 0;
+            font-size: 20px;
+        }
+        
+        .my-points {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .my-rank {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        
+        .ranking-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .table-header {
+            background: linear-gradient(135deg, #333, #555);
+            color: white;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 60px 1fr 100px 120px;
+            gap: 15px;
+            font-weight: bold;
+        }
+        
+        .table-row {
+            padding: 15px 20px;
+            display: grid;
+            grid-template-columns: 60px 1fr 100px 120px;
+            gap: 15px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        
+        .table-row:hover {
+            background: #f5f5f5;
+        }
+        
+        .table-row.my-row {
+            background: #e3f2fd;
+            border: 2px solid #2196F3;
+            font-weight: bold;
+        }
+        
+        .rank {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .rank.gold { color: #FFD700; }
+        .rank.silver { color: #C0C0C0; }
+        .rank.bronze { color: #CD7F32; }
+        
+        .name {
+            font-size: 16px;
+        }
+        
+        .points {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
+            text-align: center;
+        }
+        
+        .interactions {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .refresh-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin: 20px 0;
+            transition: background 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            background: #45a049;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 15px;
+        }
+        
+        .tips {
+            background: #f0f8ff;
+            border-left: 4px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 10px 10px 0;
+        }
+        
+        .tips h4 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        
+        .medal {
+            font-size: 24px;
+            margin-right: 5px;
+        }
+        
+        @media (max-width: 600px) {
+            .table-header, .table-row {
+                grid-template-columns: 50px 1fr 80px;
+                gap: 10px;
+            }
+            
+            .interactions {
+                display: none;
+            }
+            
+            .stats-section {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏆 交流ポイントランキング</h1>
+        <div class="subtitle">学会参加者の交流状況をリアルタイムで表示</div>
+        
+        <!-- 全体統計 -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-value" id="totalParticipants">-</div>
+                <div class="stat-label">参加者数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalInteractions">-</div>
+                <div class="stat-label">総交流数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgPoints">-</div>
+                <div class="stat-label">平均ポイント</div>
+            </div>
+        </div>
+        
+        <!-- 自分のステータス -->
+        <div class="my-status">
+            <h3>🙋‍♀️ あなたのステータス</h3>
+            <div id="myName">名前を設定してください</div>
+            <div class="my-points" id="myPoints">0</div>
+            <div>ポイント</div>
+            <div class="my-rank" id="myRank">順位: -位</div>
+        </div>
+        
+        <!-- 更新ボタン -->
+        <button class="refresh-btn" onclick="loadRanking()">
+            🔄 ランキング更新
+        </button>
+        
+        <!-- ランキングテーブル -->
+        <div class="ranking-table">
+            <div class="table-header">
+                <div>順位</div>
+                <div>参加者名</div>
+                <div>ポイント</div>
+                <div class="interactions">交流数</div>
+            </div>
+            <div id="rankingList">
+                <!-- ランキングデータがここに表示される -->
+            </div>
+        </div>
+        
+        <!-- 空状態 -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h3>📊 データがありません</h3>
+            <p>まだ誰もポイントを獲得していません。<br>
+            他の参加者のQRコードを読み取って交流を始めましょう！</p>
+        </div>
+        
+        <!-- 使い方のヒント -->
+        <div class="tips">
+            <h4>💡 ポイント獲得のコツ</h4>
+            <ul>
+                <li>他の参加者の名札のQRコードをスマホで読み取り</li>
+                <li>1日1回まで同じ方からポイント獲得可能</li>
+                <li>積極的に交流してポイントを貯めよう！</li>
+                <li>ランキング上位者には素敵な景品があるかも？</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let currentUserName = null;
+        let allData = [];
+
+        // ページ読み込み時の初期化
+        window.onload = function() {
+            // ローカルストレージから自分の名前を取得
+            currentUserName = localStorage.getItem('userName');
+            if (currentUserName) {
+                document.getElementById('myName').textContent = currentUserName;
+            }
+            
+            loadRanking();
+            
+            // 30秒ごとに自動更新
+            setInterval(loadRanking, 30000);
+        };
+
+        function loadRanking() {
+            // 全参加者のローカルストレージデータを収集
+            // 実際の運用では、サーバーAPIから取得
+            const rankingData = collectLocalStorageData();
+            
+            if (rankingData.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            hideEmptyState();
+            updateStatistics(rankingData);
+            updateMyStatus(rankingData);
+            displayRanking(rankingData);
+        }
+
+        function collectLocalStorageData() {
+            // ローカルストレージからポイント履歴を取得
+            const pointHistory = JSON.parse(localStorage.getItem('pointHistory') || '[]');
+            
+            if (pointHistory.length === 0) {
+                return [];
+            }
+
+            // 参加者別にポイントを集計
+            const userStats = {};
+            
+            pointHistory.forEach(entry => {
+                const reader = entry.reader;
+                if (!userStats[reader]) {
+                    userStats[reader] = {
+                        name: reader,
+                        points: 0,
+                        interactions: []
+                    };
+                }
+                userStats[reader].points++;
+                userStats[reader].interactions.push(entry.targetName || entry.target);
+            });
+
+            // 配列に変換してソート
+            const ranking = Object.values(userStats)
+                .sort((a, b) => b.points - a.points)
+                .map((user, index) => ({
+                    ...user,
+                    rank: index + 1,
+                    uniqueInteractions: [...new Set(user.interactions)].length
+                }));
+
+            allData = ranking;
+            return ranking;
+        }
+
+        function updateStatistics(data) {
+            const totalParticipants = data.length;
+            const totalInteractions = data.reduce((sum, user) => sum + user.points, 0);
+            const avgPoints = totalParticipants > 0 ? (totalInteractions / totalParticipants).toFixed(1) : 0;
+
+            document.getElementById('totalParticipants').textContent = totalParticipants;
+            document.getElementById('totalInteractions').textContent = totalInteractions;
+            document.getElementById('avgPoints').textContent = avgPoints;
+        }
+
+        function updateMyStatus(data) {
+            if (!currentUserName) {
+                document.getElementById('myPoints').textContent = '0';
+                document.getElementById('myRank').textContent = '順位: -位';
+                return;
+            }
+
+            const myData = data.find(user => user.name === currentUserName);
+            if (myData) {
+                document.getElementById('myPoints').textContent = myData.points;
+                document.getElementById('myRank').textContent = `順位: ${myData.rank}位`;
+            } else {
+                document.getElementById('myPoints').textContent = '0';
+                document.getElementById('myRank').textContent = '順位: -位';
+            }
+        }
+
+        function displayRanking(data) {
+            const rankingList = document.getElementById('rankingList');
+            rankingList.innerHTML = '';
+
+            data.forEach(user => {
+                const row = document.createElement('div');
+                row.className = 'table-row';
+                
+                // 自分の行をハイライト
+                if (currentUserName && user.name === currentUserName) {
+                    row.classList.add('my-row');
+                }
+
+                const rankDisplay = getRankDisplay(user.rank);
+                
+                row.innerHTML = `
+                    <div class="rank ${getRankClass(user.rank)}">${rankDisplay}</div>
+                    <div class="name">${user.name}</div>
+                    <div class="points">${user.points}</div>
+                    <div class="interactions">${user.uniqueInteractions}</div>
+                `;
+
+                rankingList.appendChild(row);
+            });
+        }
+
+        function getRankDisplay(rank) {
+            switch(rank) {
+                case 1: return '🥇';
+                case 2: return '🥈';
+                case 3: return '🥉';
+                default: return rank;
+            }
+        }
+
+        function getRankClass(rank) {
+            switch(rank) {
+                case 1: return 'gold';
+                case 2: return 'silver';
+                case 3: return 'bronze';
+                default: return '';
+            }
+        }
+
+        function showEmptyState() {
+            document.getElementById('emptyState').style.display = 'block';
+            document.querySelector('.ranking-table').style.display = 'none';
+        }
+
+        function hideEmptyState() {
+            document.getElementById('emptyState').style.display = 'none';
+            document.querySelector('.ranking-table').style.display = 'block';
+        }
+
+        // 名前設定機能
+        function setUserName() {
+            const name = prompt('あなたのお名前を入力してください:');
+            if (name && name.trim()) {
+                currentUserName = name.trim();
+                localStorage.setItem('userName', currentUserName);
+                document.getElementById('myName').textContent = currentUserName;
+                loadRanking();
+            }
+        }
+
+        // 名前が未設定の場合のクリックイベント
+        document.getElementById('myName').addEventListener('click', function() {
+            if (!currentUserName || this.textContent === '名前を設定してください') {
+                setUserName();
+            }
+        });
+
+        // デモ用のサンプルデータ生成（開発時のみ）
+        function generateSampleData() {
+            const sampleUsers = ['田中太郎', '佐藤花子', '山田次郎', '鈴木美咲', '高橋健太'];
+            const sampleHistory = [];
+            
+            // ランダムなポイント履歴を生成
+            for (let i = 0; i < 20; i++) {
+                const reader = sampleUsers[Math.floor(Math.random() * sampleUsers.length)];
+                const target = `USER${String(Math.floor(Math.random() * 10) + 1).padStart(3, '0')}`;
+                const targetName = sampleUsers[Math.floor(Math.random() * sampleUsers.length)];
+                
+                sampleHistory.push({
+                    reader: reader,
+                    target: target,
+                    targetName: targetName,
+                    timestamp: new Date().toISOString(),
+                    points: 1
+                });
+            }
+            
+            localStorage.setItem('pointHistory', JSON.stringify(sampleHistory));
+            loadRanking();
+        }
+
+        // 開発用: コンソールからサンプルデータ生成可能
+        // console.log('サンプルデータを生成するには: generateSampleData()');
+    </script>
+</body>
+</html>
