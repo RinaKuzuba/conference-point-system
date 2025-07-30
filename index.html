@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学会ポイントシステム</title>
+    <title>QRコードリーダー - 学会ポイントシステム</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -12,7 +12,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
         }
         
@@ -22,241 +22,291 @@
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             text-align: center;
-            max-width: 400px;
+            max-width: 500px;
             width: 100%;
         }
         
-        h2 {
+        h1 {
             color: #333;
             margin-bottom: 20px;
-            font-size: 24px;
         }
         
-        .participant-name {
-            font-size: 20px;
-            color: #666;
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8f9fa;
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
             border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         
-        .big-button {
-            font-size: 18px;
-            padding: 15px 30px;
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .scan-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px solid #4CAF50;
+            border-radius: 10px;
+            opacity: 0.8;
+        }
+        
+        .scan-overlay::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border: 3px solid rgba(76, 175, 80, 0.3);
+            border-radius: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .instructions {
+            margin: 20px 0;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+        
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
             background: #4CAF50;
             color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            width: 100%;
-            margin: 10px 0;
-            transition: background 0.3s;
         }
         
-        .big-button:hover {
-            background: #45a049;
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
         }
         
-        .big-button:disabled {
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
             background: #cccccc;
             cursor: not-allowed;
+            transform: none;
         }
         
         .hidden {
             display: none;
         }
         
-        .success-icon {
-            font-size: 60px;
-            margin: 20px 0;
-        }
-        
-        .error-icon {
-            font-size: 60px;
-            margin: 20px 0;
-        }
-        
-        .points-display {
-            font-size: 24px;
-            color: #4CAF50;
-            font-weight: bold;
-            margin: 15px 0;
-        }
-        
-        .back-button {
-            background: #6c757d;
-            margin-top: 20px;
-        }
-        
-        .back-button:hover {
-            background: #5a6268;
+        @media (max-width: 600px) {
+            .control-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- 確認画面 -->
-    <div id="confirmScreen" class="container">
-        <h2>📱 交流ポイント獲得</h2>
-        <div class="participant-name" id="targetName">
-            参加者との交流ポイントを獲得しますか？
+    <div class="container">
+        <h1>📱 QRコードスキャナー</h1>
+        
+        <div class="instructions">
+            QRコードをカメラに映すと自動的に読み取ります
         </div>
-        <button onclick="getPoint()" class="big-button" id="getPointBtn">
-            ✅ ポイントをもらう
-        </button>
-        <div style="margin-top: 20px; font-size: 14px; color: #666;">
-            ※1日1回まで同じ方からポイント獲得できます
+        
+        <div id="status" class="status info">
+            カメラを起動しています...
+        </div>
+        
+        <div class="camera-container" id="cameraContainer" style="display: none;">
+            <video id="video" autoplay muted playsinline></video>
+            <div class="scan-overlay"></div>
+        </div>
+        
+        <canvas id="canvas" class="hidden"></canvas>
+        
+        <div class="control-buttons">
+            <button id="startBtn" class="btn btn-primary" onclick="startCamera()">
+                📷 カメラ開始
+            </button>
+            <button id="stopBtn" class="btn btn-secondary hidden" onclick="stopCamera()">
+                ⏹️ 停止
+            </button>
+            <a href="index.html" class="btn btn-warning">
+                🏠 メインページ
+            </a>
+            <a href="ranking.html" class="btn btn-secondary">
+                🏆 ランキング
+            </a>
         </div>
     </div>
 
-    <!-- 完了画面 -->
-    <div id="successScreen" class="container hidden">
-        <div class="success-icon">🎉</div>
-        <h2>ポイント獲得完了！</h2>
-        <div class="points-display">+1ポイント</div>
-        <p>交流ありがとうございました！</p>
-        <div id="totalPoints" class="points-display">合計: ○ポイント</div>
-        <button onclick="location.reload()" class="big-button back-button">
-            別の方のQRコードを読む
-        </button>
-    </div>
-
-    <!-- エラー画面 -->
-    <div id="errorScreen" class="container hidden">
-        <div class="error-icon">❌</div>
-        <h2>獲得できませんでした</h2>
-        <p id="errorMessage">エラーが発生しました</p>
-        <button onclick="location.reload()" class="big-button back-button">
-            もう一度試す
-        </button>
-    </div>
-
-    <!-- 名前入力画面 -->
-    <div id="nameInputScreen" class="container hidden">
-        <h2>👋 はじめまして</h2>
-        <p>あなたのお名前を教えてください</p>
-        <input type="text" id="nameInput" placeholder="お名前を入力" 
-               style="width: 100%; padding: 15px; font-size: 16px; border: 2px solid #ddd; border-radius: 5px; margin: 15px 0;">
-        <button onclick="saveName()" class="big-button">
-            次へ進む
-        </button>
-    </div>
+    <!-- QRコード読み取りライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qr-scanner/1.4.2/qr-scanner.umd.min.js"></script>
 
     <script>
-        // URLパラメータから対象者情報を取得
-        function getUrlParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return {
-                targetId: urlParams.get('target'),
-                targetName: urlParams.get('name') || '参加者'
-            };
-        }
+        let scanner = null;
+        let video = null;
 
         // ページ読み込み時の初期化
         window.onload = function() {
-            const { targetId, targetName } = getUrlParams();
-            
-            if (!targetId) {
-                showError('QRコードが正しくありません');
-                return;
-            }
-
-            // 対象者名を表示
-            document.getElementById('targetName').textContent = 
-                `${targetName}さんとの交流ポイントを獲得しますか？`;
-
-            // 初回利用者は名前入力
-            const savedName = localStorage.getItem('userName');
-            if (!savedName) {
-                showNameInput();
-            }
+            video = document.getElementById('video');
+            updateStatus('📷 カメラ使用許可をお待ちしています', 'info');
         };
 
-        // 名前入力画面表示
-        function showNameInput() {
-            document.getElementById('confirmScreen').classList.add('hidden');
-            document.getElementById('nameInputScreen').classList.remove('hidden');
-        }
-
-        // 名前保存
-        function saveName() {
-            const name = document.getElementById('nameInput').value.trim();
-            if (!name) {
-                alert('お名前を入力してください');
-                return;
-            }
-            
-            localStorage.setItem('userName', name);
-            document.getElementById('nameInputScreen').classList.add('hidden');
-            document.getElementById('confirmScreen').classList.remove('hidden');
-        }
-
-        // ポイント獲得処理
-        function getPoint() {
-            const { targetId } = getUrlParams();
-            const readerName = localStorage.getItem('userName');
-            
-            if (!readerName) {
-                showNameInput();
-                return;
-            }
-
-            // 重複チェック
-            const today = new Date().toDateString();
-            const duplicateKey = `${readerName}-${targetId}-${today}`;
-            
-            if (localStorage.getItem(duplicateKey)) {
-                showError('今日は既にこの方からポイントを獲得済みです');
-                return;
-            }
-
-            // 自分自身のチェック（簡易版）
-            if (readerName === getUrlParams().targetName) {
-                showError('ご自身のQRコードは読み取れません');
-                return;
-            }
-
-            // ポイント保存
+        async function startCamera() {
             try {
-                // 重複防止フラグ
-                localStorage.setItem(duplicateKey, 'true');
+                updateStatus('📷 カメラを起動しています...', 'info');
                 
-                // ポイント履歴
-                const pointHistory = JSON.parse(localStorage.getItem('pointHistory') || '[]');
-                pointHistory.push({
-                    reader: readerName,
-                    target: targetId,
-                    targetName: getUrlParams().targetName,
-                    timestamp: new Date().toISOString(),
-                    points: 1
-                });
-                localStorage.setItem('pointHistory', JSON.stringify(pointHistory));
+                // QRスキャナーを初期化
+                scanner = new QrScanner(
+                    video,
+                    result => {
+                        updateStatus('✅ QRコード読み取り成功！', 'success');
+                        handleQRCode(result.data);
+                    },
+                    {
+                        onDecodeError: error => {
+                            // エラーは無視（QRコードが見つからない場合）
+                        },
+                        highlightScanRegion: true,
+                        highlightCodeOutline: true,
+                    }
+                );
 
-                // 合計ポイント更新
-                const totalPoints = pointHistory.length;
-                localStorage.setItem('totalPoints', totalPoints.toString());
-
-                showSuccess(totalPoints);
+                await scanner.start();
+                
+                // UI更新
+                document.getElementById('cameraContainer').style.display = 'block';
+                document.getElementById('startBtn').classList.add('hidden');
+                document.getElementById('stopBtn').classList.remove('hidden');
+                
+                updateStatus('🔍 QRコードをカメラに映してください', 'info');
+                
             } catch (error) {
-                showError('ポイント保存中にエラーが発生しました');
+                console.error('カメラエラー:', error);
+                updateStatus('❌ カメラの起動に失敗しました。ブラウザの設定を確認してください。', 'error');
             }
         }
 
-        // 成功画面表示
-        function showSuccess(totalPoints) {
-            document.getElementById('confirmScreen').classList.add('hidden');
-            document.getElementById('totalPoints').textContent = `合計: ${totalPoints}ポイント`;
-            document.getElementById('successScreen').classList.remove('hidden');
+        function stopCamera() {
+            if (scanner) {
+                scanner.stop();
+                scanner = null;
+            }
+            
+            // UI更新
+            document.getElementById('cameraContainer').style.display = 'none';
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.add('hidden');
+            
+            updateStatus('📷 カメラが停止されました', 'info');
         }
 
-        // エラー画面表示
-        function showError(message) {
-            document.getElementById('errorMessage').textContent = message;
-            document.getElementById('confirmScreen').classList.add('hidden');
-            document.getElementById('successScreen').classList.add('hidden');
-            document.getElementById('nameInputScreen').classList.add('hidden');
-            document.getElementById('errorScreen').classList.remove('hidden');
+        function handleQRCode(data) {
+            console.log('QRコード読み取り:', data);
+            
+            // QRコードのURLかどうかチェック
+            if (data.startsWith('http')) {
+                updateStatus('🚀 ページに移動しています...', 'success');
+                
+                // 少し遅延してからページ遷移
+                setTimeout(() => {
+                    window.location.href = data;
+                }, 1000);
+                
+            } else {
+                updateStatus('⚠️ 学会ポイントシステムのQRコードではありません', 'error');
+                
+                // 3秒後にスキャン再開
+                setTimeout(() => {
+                    updateStatus('🔍 QRコードをカメラに映してください', 'info');
+                }, 3000);
+            }
         }
+
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+        }
+
+        // ページ離脱時にカメラを停止
+        window.addEventListener('beforeunload', function() {
+            if (scanner) {
+                scanner.stop();
+            }
+        });
+
+        // ページが非表示になった時にカメラを停止
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && scanner) {
+                scanner.stop();
+            }
+        });
     </script>
 </body>
 </html>
